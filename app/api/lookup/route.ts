@@ -3,14 +3,7 @@ import Groq from "groq-sdk";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-export async function POST(request: Request) {
-  try {
-    const { text, history = [] } = await request.json();
-
-    if (!text) {
-      return NextResponse.json({ error: "No text provided" }, { status: 400 });
-    }
-    const systemPrompt = `You are an advanced reading assistant. Analyze the user's provided text snippet.
+const defaultPrompt = `You are an advanced reading assistant. Analyze the user's provided text snippet.
       Provide a response with the following strictly formatted sections using Markdown headings in this exact order:
 
       ### Summary
@@ -24,6 +17,16 @@ export async function POST(request: Request) {
 
       ### Context, People & Places
       [Provide deeper historical background on specific locations, entities, or figures mentioned. CRITICAL: Wrap key nouns inside a <lookup-term> tag, for example: "The battle involved <lookup-term>Gustavus Adolphus</lookup-term>." ]`;
+
+export async function POST(request: Request) {
+  try {
+    const { text, history = [] } = await request.json();
+
+    if (!text) {
+      return NextResponse.json({ error: "No text provided" }, { status: 400 });
+    }
+
+    const systemPrompt = process.env.SYSTEM_PROMPT || defaultPrompt;
 
     const messages: Groq.Chat.ChatCompletionMessageParam[] = [
       { role: "system", content: systemPrompt },
