@@ -3,10 +3,92 @@
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState, useRef, Suspense } from "react";
 import ReactMarkdown from "react-markdown";
+import rehypeRaw from "rehype-raw";
 
 interface Message {
   role: "system" | "user" | "assistant";
   content: string;
+}
+
+// Interactive Hover Component that queries Wikipedia with a 50% larger frame
+function HoverLookup({ children }: { children: React.ReactNode }) {
+  const term = String(children).trim();
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [fetched, setFetched] = useState(false);
+  const [showPopup, setShowPopup] = useState(false);
+
+  const fetchImage = async () => {
+    if (fetched || loading) return;
+    setLoading(true);
+    try {
+      // Step A: Search Wikipedia for a closely matching article page title
+      const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(term)}&format=json&origin=*`;
+      const searchRes = await fetch(searchUrl);
+      const searchData = await searchRes.json();
+      const pageTitle = searchData?.query?.search?.[0]?.title;
+
+      if (pageTitle) {
+        // Step B: Grab the main page image thumb URL from that specific article (requested a slightly larger original thumbnail size)
+        const imgUrl = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(pageTitle)}&prop=pageimages&pithumbsize=400&format=json&origin=*`;
+        const imgRes = await fetch(imgUrl);
+        const imgData = await imgRes.json();
+        const pages = imgData?.query?.pages;
+        const pageId = Object.keys(pages)[0];
+        const thumbnail = pages[pageId]?.thumbnail?.source;
+
+        if (thumbnail) {
+          setImageUrl(thumbnail);
+        }
+      }
+    } catch (err) {
+      console.error("Failed fetching image preview from Wikipedia", err);
+    } finally {
+      setLoading(false);
+      setFetched(true);
+    }
+  };
+
+  return (
+    <span
+      className="relative inline-block border-b border-dotted border-indigo-500 text-indigo-600 font-medium cursor-help"
+      onMouseEnter={() => {
+        setShowPopup(true);
+        fetchImage();
+      }}
+      onMouseLeave={() => setShowPopup(false)}
+    >
+      {children}
+
+      {showPopup && (
+        /* Scaled up the overall container width to w-72 */
+        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 z-30 bg-white border border-slate-200 p-2.5 rounded-xl shadow-xl animate-fade-in block text-center">
+          {loading && (
+            <span className="text-[11px] text-slate-400 block py-6 animate-pulse">
+              Searching images...
+            </span>
+          )}
+          {!loading && imageUrl && (
+            /* Scaled up the frame height to h-52 and adjusted padding */
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={imageUrl}
+              alt={term}
+              className="w-full h-52 object-contain rounded-lg bg-slate-900/5 p-1.5"
+            />
+          )}
+          {!loading && !imageUrl && fetched && (
+            <span className="text-[11px] text-slate-400 block py-4">
+              No illustration found
+            </span>
+          )}
+          <span className="text-xs font-semibold text-slate-700 block mt-2 truncate">
+            {term}
+          </span>
+        </span>
+      )}
+    </span>
+  );
 }
 
 function DictionaryContent() {
@@ -19,7 +101,6 @@ function DictionaryContent() {
   const [followUpInput, setFollowUpInput] = useState("");
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to the bottom when new chat messages appear
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
@@ -27,7 +108,6 @@ function DictionaryContent() {
   useEffect(() => {
     if (initialText) {
       setSelection(initialText);
-      // Reset chat history for a brand-new selection query
       handleLookup(initialText, []);
     }
   }, [initialText]);
@@ -76,7 +156,6 @@ function DictionaryContent() {
     setMessages(updatedHistory);
     setFollowUpInput("");
 
-    // Pass the original context along with the full chat history trail
     await handleLookup(
       selection + `\n\nFollow-up question: ${followUpInput}`,
       updatedHistory.slice(0, -1),
@@ -90,7 +169,7 @@ function DictionaryContent() {
   return (
     <main className="max-w-2xl mx-auto px-4 py-6 min-h-screen flex flex-col justify-between font-sans bg-slate-50 text-slate-900">
       <div className="flex-1 flex flex-col justify-between">
-        {/* Header with Accordion */}
+        {/* Accordion Header */}
         <header className="border-b border-slate-200 pb-3 mb-4 backdrop-blur bg-slate-50/80 sticky top-0 z-10">
           <div className="flex justify-between items-center">
             <h1 className="text-lg font-bold text-indigo-600 flex items-center gap-1.5">
@@ -100,7 +179,6 @@ function DictionaryContent() {
               <button
                 onClick={() => copyToClipboard(selection)}
                 className="text-xs text-slate-400 hover:text-indigo-600 bg-slate-100 hover:bg-indigo-50 px-2 py-1 rounded transition"
-                title="Copy selection to clipboard"
               >
                 Copy Full Text
               </button>
@@ -125,7 +203,7 @@ function DictionaryContent() {
                     Collapse
                   </span>
                 </summary>
-                <div className="p-3 text-xs text-slate-600 border-t border-slate-200/40 bg-slate-50 max-h-40 overflow-y-auto leading-relaxed whitespace-pre-wrap select-text">
+                <div className="p-3 text-xs text-slate-600 border-t border-slate-200/40 bg-slate-50 max-h-40 overflow-y-auto leading-relaxed whitespace-pre-wrap">
                   {selection}
                 </div>
               </details>
@@ -146,7 +224,7 @@ function DictionaryContent() {
             return (
               <div
                 key={idx}
-                className={`flex ${isUser ? "justify-end" : "justify-start"} animate-fade-in`}
+                className={`flex ${isUser ? "justify-end" : "justify-start"}`}
               >
                 <div
                   className={`max-w-[90%] rounded-2xl p-4 shadow-sm border group ${
@@ -160,6 +238,7 @@ function DictionaryContent() {
                   ) : (
                     <div className="relative">
                       <ReactMarkdown
+                        rehypePlugins={[rehypeRaw]} // Enables the app to handle custom tags like <lookup-term>
                         components={{
                           h3: ({ ...props }) => (
                             <h3
@@ -188,6 +267,10 @@ function DictionaryContent() {
                               {...props}
                             />
                           ),
+                          // Intercept our custom tag from Groq and replace it with the hover component
+                          "lookup-term": ({ ...props }) => (
+                            <HoverLookup {...props} />
+                          ),
                         }}
                       >
                         {msg.content}
@@ -195,7 +278,6 @@ function DictionaryContent() {
                       <button
                         onClick={() => copyToClipboard(msg.content)}
                         className="absolute -top-2 -right-2 p-1 bg-slate-50 border rounded text-[10px] text-slate-400 hover:text-indigo-600 opacity-0 group-hover:opacity-100 transition shadow-sm"
-                        title="Copy text snippet"
                       >
                         📋 Copy
                       </button>
@@ -230,7 +312,7 @@ function DictionaryContent() {
         </div>
       </div>
 
-      {/* Persistent Sticky Chat Input */}
+      {/* Sticky Chat Input */}
       {messages.length > 0 && (
         <div className="fixed bottom-0 left-0 right-0 max-w-2xl mx-auto px-4 pb-4 bg-gradient-to-t from-slate-50 via-slate-50 to-transparent pt-6">
           <form

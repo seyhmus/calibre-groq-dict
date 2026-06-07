@@ -18,12 +18,11 @@ Provide a response with the following strictly formatted sections using Markdown
 [Provide a concise 1-2 sentence summary of the context or meaning]
 
 ### Vocabulary & Uncommon Words
-[Identify any uncommon, archaic, or advanced words and define them. If none, write "None identified."]
+[Identify any uncommon, archaic, or advanced words and define them. CRITICAL: Wrap the exact word being defined inside a <lookup-term> tag, for example: "* **<lookup-term>Obfuscate</lookup-term>**: To render obscure, unclear, or unintelligible."]
 
 ### Context, People & Places
-[Explain any historical figures, specific locations, events, or niche concepts that are not widely known. If none, write "None identified."]`;
+[Explain any historical figures, specific locations, events, or niche concepts. CRITICAL: Wrap key nouns, historical names, or locations inside a <lookup-term> tag, for example: "The battle took place near <lookup-term>Waterloo</lookup-term> involving <lookup-term>Napoleon Bonaparte</lookup-term>."]`;
 
-    // Explicitly type the array using Groq's ChatCompletionMessageParam type
     const messages: Groq.Chat.ChatCompletionMessageParam[] = [
       { role: "system", content: systemPrompt },
       ...history,
@@ -31,7 +30,7 @@ Provide a response with the following strictly formatted sections using Markdown
     ];
 
     const chatCompletion = await groq.chat.completions.create({
-      messages: messages, // Look ma, no 'as any'!
+      messages: messages,
       model: "llama-3.1-8b-instant",
       temperature: 0.3,
     });
