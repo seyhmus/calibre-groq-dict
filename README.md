@@ -6,7 +6,6 @@ An AI-powered custom dictionary for the Calibre E-book Viewer. Built with Next.j
 * **AI Summary & Vocabulary:** Automatically parses highlighted text into summaries, advanced definitions, and deep context.
 * **Wikipedia Hover Previews:** Hovering over key nouns dynamically pulls up optimized illustration cards from Wikipedia.
 * **Persistent Chat:** Continue exploring text passages with an ongoing contextual chat stream.
-* **Space-Saving Accordion:** Large paragraph selections fold away automatically to preserve sidebar space.
 
 ---
 
@@ -24,6 +23,12 @@ Create a .env.local file in the root directory and add your Groq API Key:
 
 ```env
 GROQ_API_KEY=your_groq_api_key_here
+```
+
+Optional: Override the baseline AI behavior, layout instructions, or targeted language goals
+
+```env
+SYSTEM_PROMPT="You are an advanced reading assistant..."
 ```
 
 ### 3. Deploy to Vercel
