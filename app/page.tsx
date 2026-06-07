@@ -10,7 +10,7 @@ interface Message {
   content: string;
 }
 
-// Interactive Hover Component that queries Wikipedia with a 50% larger frame
+// Interactive Hover Component that queries Wikipedia with an expanded 50% larger frame
 function HoverLookup({ children }: { children: React.ReactNode }) {
   const term = String(children).trim();
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -29,7 +29,7 @@ function HoverLookup({ children }: { children: React.ReactNode }) {
       const pageTitle = searchData?.query?.search?.[0]?.title;
 
       if (pageTitle) {
-        // Step B: Grab the main page image thumb URL from that specific article (requested a slightly larger original thumbnail size)
+        // Step B: Grab the main page image thumb URL from that specific article (resolution optimized for bigger layout)
         const imgUrl = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(pageTitle)}&prop=pageimages&pithumbsize=400&format=json&origin=*`;
         const imgRes = await fetch(imgUrl);
         const imgData = await imgRes.json();
@@ -61,7 +61,7 @@ function HoverLookup({ children }: { children: React.ReactNode }) {
       {children}
 
       {showPopup && (
-        /* Scaled up the overall container width to w-72 */
+        /* Expanded frame container width set to w-72 */
         <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 z-30 bg-white border border-slate-200 p-2.5 rounded-xl shadow-xl animate-fade-in block text-center">
           {loading && (
             <span className="text-[11px] text-slate-400 block py-6 animate-pulse">
@@ -69,7 +69,7 @@ function HoverLookup({ children }: { children: React.ReactNode }) {
             </span>
           )}
           {!loading && imageUrl && (
-            /* Scaled up the frame height to h-52 and adjusted padding */
+            /* Using object-contain and an added subtle bg padding for portrait-style canvas files */
             /* eslint-disable-next-line @next/next/no-img-element */
             <img
               src={imageUrl}
@@ -238,40 +238,47 @@ function DictionaryContent() {
                   ) : (
                     <div className="relative">
                       <ReactMarkdown
-                        rehypePlugins={[rehypeRaw]} // Enables the app to handle custom tags like <lookup-term>
-                        components={{
-                          h3: ({ ...props }) => (
-                            <h3
-                              className="text-sm font-bold uppercase tracking-wider text-indigo-600 mt-4 mb-1.5 first:mt-0 border-b pb-0.5 border-slate-100"
-                              {...props}
-                            />
-                          ),
-                          p: ({ ...props }) => (
-                            <p
-                              className="text-sm text-slate-700 leading-relaxed mb-2.5 last:mb-0"
-                              {...props}
-                            />
-                          ),
-                          ul: ({ ...props }) => (
-                            <ul
-                              className="list-disc list-inside space-y-1 mb-2 text-sm text-slate-600"
-                              {...props}
-                            />
-                          ),
-                          li: ({ ...props }) => (
-                            <li className="ml-1" {...props} />
-                          ),
-                          strong: ({ ...props }) => (
-                            <strong
-                              className="font-semibold text-slate-900"
-                              {...props}
-                            />
-                          ),
-                          // Intercept our custom tag from Groq and replace it with the hover component
-                          "lookup-term": ({ ...props }) => (
-                            <HoverLookup {...props} />
-                          ),
-                        }}
+                        rehypePlugins={[rehypeRaw]}
+                        components={
+                          {
+                            h3: ({ ...props }) => (
+                              <h3
+                                className="text-sm font-bold uppercase tracking-wider text-indigo-600 mt-4 mb-1.5 first:mt-0 border-b pb-0.5 border-slate-100"
+                                {...props}
+                              />
+                            ),
+                            p: ({ ...props }) => (
+                              <p
+                                className="text-sm text-slate-700 leading-relaxed mb-2.5 last:mb-0"
+                                {...props}
+                              />
+                            ),
+                            ul: ({ ...props }) => (
+                              <ul
+                                className="list-disc list-inside space-y-1 mb-2 text-sm text-slate-600"
+                                {...props}
+                              />
+                            ),
+                            li: ({ ...props }) => (
+                              <li className="ml-1" {...props} />
+                            ),
+                            strong: ({ ...props }) => (
+                              <strong
+                                className="font-semibold text-slate-900"
+                                {...props}
+                              />
+                            ),
+                            // Explicitly extract and pass the children prop to make the linter happy
+                            "lookup-term": ({
+                              children,
+                              ...props
+                            }: {
+                              children?: React.ReactNode;
+                            }) => (
+                              <HoverLookup {...props}>{children}</HoverLookup>
+                            ),
+                          } as Record<string, React.ComponentType<any>>
+                        }
                       >
                         {msg.content}
                       </ReactMarkdown>
