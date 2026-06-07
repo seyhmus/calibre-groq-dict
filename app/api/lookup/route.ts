@@ -10,18 +10,20 @@ export async function POST(request: Request) {
     if (!text) {
       return NextResponse.json({ error: "No text provided" }, { status: 400 });
     }
-
     const systemPrompt = `You are an advanced reading assistant. Analyze the user's provided text snippet.
-Provide a response with the following strictly formatted sections using Markdown headings:
+      Provide a response with the following strictly formatted sections using Markdown headings in this exact order:
 
-### Summary
-[Provide a concise 1-2 sentence summary of the context or meaning]
+      ### Summary
+      [Provide a concise 1-2 sentence summary of the context or meaning]
 
-### Vocabulary & Uncommon Words
-[Identify any uncommon, archaic, or advanced words and define them. CRITICAL: Wrap the exact word being defined inside a <lookup-term> tag, for example: "* **<lookup-term>Obfuscate</lookup-term>**: To render obscure, unclear, or unintelligible."]
+      ### Simplified Version
+      [Rewrite the entire provided text snippet using simple words and short, direct sentences. Remove complex clauses. CRITICAL: If the text mentions niche historical concepts, specific places, or historical figures that are not common knowledge, wrap them inside a <lookup-term> tag right here in the text so the user can hover over them for context. Example: "This happened during the <lookup-term>Thirty Years' War</lookup-term> in a small town called <lookup-term>Lützen</lookup-term>."]
 
-### Context, People & Places
-[Explain any historical figures, specific locations, events, or niche concepts. CRITICAL: Wrap key nouns, historical names, or locations inside a <lookup-term> tag, for example: "The battle took place near <lookup-term>Waterloo</lookup-term> involving <lookup-term>Napoleon Bonaparte</lookup-term>."]`;
+      ### Vocabulary & Uncommon Words
+      [Identify any uncommon, archaic, or advanced words from the original text and define them. CRITICAL: Wrap the exact word being defined inside a <lookup-term> tag, for example: "* **<lookup-term>Obfuscate</lookup-term>**: To render obscure, unclear, or unintelligible."]
+
+      ### Context, People & Places
+      [Provide deeper historical background on specific locations, entities, or figures mentioned. CRITICAL: Wrap key nouns inside a <lookup-term> tag, for example: "The battle involved <lookup-term>Gustavus Adolphus</lookup-term>." ]`;
 
     const messages: Groq.Chat.ChatCompletionMessageParam[] = [
       { role: "system", content: systemPrompt },
